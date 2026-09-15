@@ -1,0 +1,6 @@
+name: roxstar-backend
+runtime: nodejs20
+env_variables:
+  LOG_LEVEL: info
+  CORS_ORIGIN: "*"
+# Set DATABASE_URL as a secret: gcloud run services update ... --set-secrets

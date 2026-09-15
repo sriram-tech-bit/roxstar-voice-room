@@ -1,0 +1,140 @@
+openapi: 3.0.3
+info:
+  title: Roxstar Room and Spin Wheel API
+  version: 1.0.0
+  description: REST surface for the voice-draft room assessment. Real-time events are Socket.IO, not HTTP.
+servers:
+  - url: http://localhost:8080
+paths:
+  /health:
+    get:
+      summary: Liveness
+      responses:
+        "200":
+          description: Process is up
+  /ready:
+    get:
+      summary: Readiness (database ping)
+      responses:
+        "200":
+          description: Database reachable
+        "503":
+          description: Database down
+  /users:
+    post:
+      summary: Create a participant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [displayName]
+              properties:
+                displayName: { type: string }
+      responses:
+        "201":
+          description: Created
+  /rooms:
+    post:
+      summary: Create room (caller becomes owner)
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "201":
+          description: Room snapshot
+  /rooms/{code}/join:
+    post:
+      summary: Join by room code
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+        - name: code
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Room snapshot
+  /rooms/{id}:
+    get:
+      summary: Room details and participants
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+      responses:
+        "200":
+          description: Snapshot
+  /rooms/{id}/state:
+    get:
+      summary: Latest room + spin snapshot (reconnect)
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+      responses:
+        "200":
+          description: Snapshot
+  /rooms/{id}/leave:
+    post:
+      summary: Leave room
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+        - $ref: "#/components/parameters/RoomId"
+      responses:
+        "200":
+          description: Snapshot after leave
+  /rooms/{id}/drafts:
+    post:
+      summary: Share a draft with the room
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+        - $ref: "#/components/parameters/RoomId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                durationMs: { type: integer }
+                storageUrl: { type: string }
+                effect: { type: string }
+      responses:
+        "201":
+          description: Draft row
+  /rooms/{id}/spins:
+    post:
+      summary: Owner starts a spin (idempotent if one is running)
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+        - $ref: "#/components/parameters/RoomId"
+      responses:
+        "201":
+          description: Spin started
+        "200":
+          description: Existing running spin
+        "400":
+          description: INSUFFICIENT_PLAYERS or TOO_MANY_PLAYERS
+        "403":
+          description: NOT_OWNER
+  /spins/{id}:
+    get:
+      summary: Spin state or result
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Spin graph
+components:
+  parameters:
+    UserId:
+      name: X-User-Id
+      in: header
+      required: true
+      schema: { type: string, format: uuid }
+    RoomId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }

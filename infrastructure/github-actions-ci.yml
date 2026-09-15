@@ -1,0 +1,38 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: roxstar
+          POSTGRES_PASSWORD: roxstar
+          POSTGRES_DB: roxstar
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U roxstar"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install and test
+        working-directory: backend
+        env:
+          DATABASE_URL: postgres://roxstar:roxstar@localhost:5432/roxstar
+        run: |
+          npm install
+          npm test
+      - name: Build image
+        run: docker build -f infrastructure/Dockerfile -t roxstar-backend:${{ github.sha }} .
