@@ -1,9 +1,13 @@
 'use strict';
 
+require('dns').setDefaultResultOrder('ipv4first');
+
 const { Pool } = require('pg');
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL
+  connectionString: process.env.DATABASE_URL,
+  connectionTimeoutMillis: 15000,
+  ssl: { rejectUnauthorized: false }
 });
 
 async function query(text, params) {
