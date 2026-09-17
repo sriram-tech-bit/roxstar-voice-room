@@ -16,6 +16,7 @@ function attachSockets(io) {
         await store.setConnected(roomId, userId, true);
         const snapshot = await store.getRoomSnapshot(roomId);
         socket.emit('room_state', snapshot);
+        socket.to(`room:${roomId}`).emit('user_joined', snapshot);
         if (typeof ack === 'function') ack({ ok: true });
       } catch (err) {
         if (typeof ack === 'function') ack({ ok: false, message: err.message });
@@ -27,6 +28,8 @@ function attachSockets(io) {
       if (roomId && userId) {
         socket.leave(`room:${roomId}`);
         await store.setConnected(roomId, userId, false);
+        const snapshot = await store.getRoomSnapshot(roomId);
+        socket.to(`room:${roomId}`).emit('user_left', snapshot);
       }
       if (typeof ack === 'function') ack({ ok: true });
     });
@@ -67,3 +70,5 @@ function attachSockets(io) {
 }
 
 module.exports = { attachSockets };
+
+
