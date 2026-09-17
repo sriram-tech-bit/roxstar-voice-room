@@ -1,4 +1,4 @@
-# Assumptions, edge cases, trade-offs, limitations
+﻿# Assumptions, edge cases, trade-offs, limitations
 
 ## Assumptions
 
@@ -30,5 +30,5 @@
 
 - Draft audio is not uploaded to cloud storage.
 - Android UI is functional, not visually polished (PRD: reasoning over polish).
-- Cloud deploy job in CI is a documented placeholder until GCP/AWS/Azure credentials exist.
+- Deployed to Render, not AWS/GCP/Azure, due to free-tier access constraints during this assessment window. The Dockerfile (`infrastructure/Dockerfile`) is cloud-agnostic and would deploy identically to Cloud Run, App Runner, or App Service given billing access. CI/CD (`.github/workflows/ci.yml`) runs on every push and is fully green; production database is Neon Postgres via `DATABASE_URL`.
 - Disconnect grace does not auto-leave the room (only `connected=false`) so accidental network drops do not eject players from a spin.
