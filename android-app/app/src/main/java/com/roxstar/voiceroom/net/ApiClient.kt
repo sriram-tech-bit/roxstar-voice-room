@@ -56,6 +56,17 @@ class ApiClient {
     private fun call(request: Request): JSONObject {
         http.newCall(request).execute().use { response ->
             val text = response.body?.string().orEmpty()
+
+            // Detect non-JSON responses (e.g. Render cold-start HTML page, proxy errors)
+            val trimmed = text.trimStart()
+            if (trimmed.startsWith("<")) {
+                throw ApiException(
+                    response.code,
+                    "SERVER_STARTING",
+                    "Server is waking up, please wait a few seconds and try again"
+                )
+            }
+
             val parsed = if (text.isBlank()) JSONObject() else JSONObject(text)
             if (!response.isSuccessful) {
                 val message = parsed.optString("message", "HTTP ${response.code}")
