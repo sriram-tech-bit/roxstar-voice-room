@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.media.MediaMetadataRetriever
 import android.os.Bundle
+import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -38,7 +39,6 @@ class MainActivity : AppCompatActivity() {
     private var roomId: String? = null
     private var adapter: DraftAdapter? = null
 
-    // Prevents rapid repeated taps on record button
     @Volatile
     private var isStartingRecording = false
 
@@ -61,8 +61,11 @@ class MainActivity : AppCompatActivity() {
 
         drafts = DraftStore(this)
 
-        // URL is hidden from the user.
-        binding.apiUrl.visibility = android.view.View.GONE
+        // API URL is not shown to the user.
+        binding.apiUrl.visibility = View.GONE
+
+        // Technical log is also hidden.
+        binding.logView.visibility = View.GONE
 
         adapter = DraftAdapter(
 
@@ -86,6 +89,7 @@ class MainActivity : AppCompatActivity() {
 
             onSelect = {
                 selectedDraft = it
+                toast("Selected ${it.name}")
             }
         )
 
@@ -127,7 +131,7 @@ class MainActivity : AppCompatActivity() {
             recordingFile?.delete()
             recordingFile = null
 
-            log("Recording cancelled")
+            toast("Recording cancelled")
         }
 
         // =========================================================
@@ -140,9 +144,9 @@ class MainActivity : AppCompatActivity() {
 
                 ensureUser()
 
-                val snap = api.createRoom()
+                val snapshot = api.createRoom()
 
-                enterRoom(snap)
+                enterRoom(snapshot)
             }
         }
 
@@ -152,15 +156,23 @@ class MainActivity : AppCompatActivity() {
 
         binding.joinRoom.setOnClickListener {
 
+            val code = binding.roomCode.text
+                .toString()
+                .trim()
+
+            if (code.isBlank()) {
+                toast("Enter a room code")
+                return@setOnClickListener
+            }
+
             runNet {
 
                 ensureUser()
 
-                val snap = api.joinRoom(
-                    binding.roomCode.text.toString()
-                )
+                val snapshot =
+                    api.joinRoom(code)
 
-                enterRoom(snap)
+                enterRoom(snapshot)
             }
         }
 
@@ -171,7 +183,10 @@ class MainActivity : AppCompatActivity() {
         binding.leaveRoom.setOnClickListener {
 
             val id =
-                roomId ?: return@setOnClickListener
+                roomId
+                    ?: return@setOnClickListener toast(
+                        "You are not in a room"
+                    )
 
             runNet {
 
@@ -181,7 +196,9 @@ class MainActivity : AppCompatActivity() {
 
                 roomId = null
 
-                log("👋 You left the room")
+                runOnUiThread {
+                    toast("👋 You left the room")
+                }
             }
         }
 
@@ -194,12 +211,13 @@ class MainActivity : AppCompatActivity() {
             val id = roomId
             val draft = selectedDraft
 
-            if (id == null || draft == null) {
+            if (id == null) {
+                toast("Join a room first")
+                return@setOnClickListener
+            }
 
-                toast(
-                    "Join a room and select a draft"
-                )
-
+            if (draft == null) {
+                toast("Select a draft first")
                 return@setOnClickListener
             }
 
@@ -212,7 +230,9 @@ class MainActivity : AppCompatActivity() {
                     draft.effect
                 )
 
-                log("🎵 Draft shared")
+                runOnUiThread {
+                    toast("🎵 Draft shared")
+                }
             }
         }
 
@@ -232,7 +252,9 @@ class MainActivity : AppCompatActivity() {
 
                 api.startSpin(id)
 
-                log("🎯 Spin started")
+                runOnUiThread {
+                    toast("🎯 Spin started")
+                }
             }
         }
 
@@ -243,10 +265,16 @@ class MainActivity : AppCompatActivity() {
         binding.reconnect.setOnClickListener {
 
             val id =
-                roomId ?: return@setOnClickListener
+                roomId
+                    ?: return@setOnClickListener toast(
+                        "Join a room first"
+                    )
 
             val uid =
-                api.userId ?: return@setOnClickListener
+                api.userId
+                    ?: return@setOnClickListener toast(
+                        "User session not ready"
+                    )
 
             realtime.reconnectState(
                 id,
@@ -257,7 +285,9 @@ class MainActivity : AppCompatActivity() {
 
                 api.roomState(id)
 
-                log("🔄 Room connection refreshed")
+                runOnUiThread {
+                    toast("🔄 Room connection refreshed")
+                }
             }
         }
     }
@@ -313,7 +343,7 @@ class MainActivity : AppCompatActivity() {
                     if (!ok) {
 
                         toast(
-                            "Oboe could not start the input stream"
+                            "Audio recording could not start"
                         )
 
                     } else {
@@ -321,9 +351,7 @@ class MainActivity : AppCompatActivity() {
                         recordStartedAt =
                             System.currentTimeMillis()
 
-                        log(
-                            "🎙️ Recording started"
-                        )
+                        toast("🎙️ Recording started")
                     }
 
                     isStartingRecording = false
@@ -334,7 +362,7 @@ class MainActivity : AppCompatActivity() {
                 runOnUiThread {
 
                     toast(
-                        "Record failed: ${t.message}"
+                        "Record failed"
                     )
 
                     isStartingRecording = false
@@ -392,9 +420,7 @@ class MainActivity : AppCompatActivity() {
 
                 refreshDrafts()
 
-                log(
-                    "✅ Saved $name (${wavDuration}ms)"
-                )
+                toast("✅ $name saved")
             }
         }
     }
@@ -446,6 +472,7 @@ class MainActivity : AppCompatActivity() {
             binding.displayName
                 .text
                 .toString()
+                .trim()
                 .ifBlank {
                     "Player"
                 }
@@ -457,9 +484,6 @@ class MainActivity : AppCompatActivity() {
 
             api.userId =
                 user.getString("id")
-
-            // IMPORTANT:
-            // Do NOT show user ID in UI.
         }
     }
 
@@ -483,6 +507,8 @@ class MainActivity : AppCompatActivity() {
         runOnUiThread {
 
             binding.roomCode.setText(code)
+
+            toast("🎮 Joined room $code")
         }
 
         val uid =
@@ -499,13 +525,10 @@ class MainActivity : AppCompatActivity() {
                 payload
             )
         }
-
-        // Don't display members JSON or room UUID.
-        log("🎮 Joined room $code")
     }
 
     // =============================================================
-    // REALTIME EVENT HANDLER
+    // REALTIME EVENTS
     // =============================================================
 
     private fun handleRealtimeEvent(
@@ -526,6 +549,7 @@ class MainActivity : AppCompatActivity() {
                     val winnerName =
                         payload
                             .optString("winnerName")
+                            .trim()
                             .ifBlank {
                                 "Unknown player"
                             }
@@ -536,16 +560,8 @@ class MainActivity : AppCompatActivity() {
                             0
                         )
 
-                    log(
-                        "🏆 WINNER: $winnerName"
-                    )
-
-                    log(
-                        "💰 +$points points"
-                    )
-
                     toast(
-                        "🏆 $winnerName wins!"
+                        "🏆 $winnerName wins!\n💰 +$points points"
                     )
                 }
 
@@ -555,8 +571,7 @@ class MainActivity : AppCompatActivity() {
 
                 "user_eliminated" -> {
 
-                    // Do NOT show userId.
-                    log(
+                    toast(
                         "❌ A player was eliminated"
                     )
                 }
@@ -567,7 +582,7 @@ class MainActivity : AppCompatActivity() {
 
                 "spin_started" -> {
 
-                    log(
+                    toast(
                         "🎯 Spin started"
                     )
                 }
@@ -578,7 +593,7 @@ class MainActivity : AppCompatActivity() {
 
                 "user_joined" -> {
 
-                    log(
+                    toast(
                         "🟢 A player joined the room"
                     )
                 }
@@ -589,7 +604,7 @@ class MainActivity : AppCompatActivity() {
 
                 "user_left" -> {
 
-                    log(
+                    toast(
                         "🔴 A player left the room"
                     )
                 }
@@ -600,7 +615,7 @@ class MainActivity : AppCompatActivity() {
 
                 "draft_shared" -> {
 
-                    log(
+                    toast(
                         "🎵 A draft was shared"
                     )
                 }
@@ -610,18 +625,16 @@ class MainActivity : AppCompatActivity() {
                 // -------------------------------------------------
 
                 "room_state" -> {
-
-                    // Don't show raw JSON.
-                    // Room state is handled internally.
+                    // Intentionally hidden.
+                    // Do not show raw room state or IDs.
                 }
 
                 // -------------------------------------------------
-                // UNKNOWN EVENTS
+                // UNKNOWN
                 // -------------------------------------------------
 
                 else -> {
-
-                    // Don't display technical events or JSON.
+                    // Do not show technical events.
                 }
             }
         }
@@ -659,14 +672,12 @@ class MainActivity : AppCompatActivity() {
 
                 block()
 
-            } catch (t: Throwable) {
+            } catch (_: Throwable) {
 
                 runOnUiThread {
 
-                    // Don't expose technical IDs/JSON.
                     toast(
-                        t.message
-                            ?: "Network error"
+                        "Something went wrong. Please try again."
                     )
                 }
             }
@@ -674,13 +685,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     // =============================================================
-    // USER-FRIENDLY LOG
+    // OLD LOG FUNCTION
     // =============================================================
 
     private fun log(
         message: String
     ) {
 
+        // Kept only for compatibility.
+        // logView is hidden from the user.
         runOnUiThread {
 
             binding.logView.append(

@@ -1,9 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="16dp">
+
+    <!-- ========================================================= -->
+    <!-- TITLE -->
+    <!-- ========================================================= -->
 
     <TextView
         android:layout_width="match_parent"
@@ -12,6 +17,10 @@
         android:textSize="18sp"
         android:textStyle="bold" />
 
+    <!-- ========================================================= -->
+    <!-- DISPLAY NAME -->
+    <!-- ========================================================= -->
+
     <EditText
         android:id="@+id/displayName"
         android:layout_width="match_parent"
@@ -19,12 +28,21 @@
         android:hint="Display name"
         android:inputType="textPersonName" />
 
+    <!-- ========================================================= -->
+    <!-- API URL - HIDDEN -->
+    <!-- ========================================================= -->
+
     <EditText
         android:id="@+id/apiUrl"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="API base URL"
-        android:inputType="textUri" />
+        android:inputType="textUri"
+        android:visibility="gone" />
+
+    <!-- ========================================================= -->
+    <!-- RECORDING CONTROLS -->
+    <!-- ========================================================= -->
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -51,21 +69,35 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Cancel" />
+
     </LinearLayout>
+
+    <!-- ========================================================= -->
+    <!-- AUDIO EFFECT -->
+    <!-- ========================================================= -->
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Effect: Echo (Oboe native path)" />
 
+    <!-- ========================================================= -->
+    <!-- DRAFT LIST -->
+    <!-- ========================================================= -->
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/draftList"
         android:layout_width="match_parent"
         android:layout_height="140dp" />
 
+    <!-- ========================================================= -->
+    <!-- ROOM CONTROLS -->
+    <!-- ========================================================= -->
+
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
 
         <Button
             android:id="@+id/createRoom"
@@ -88,7 +120,12 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Join" />
+
     </LinearLayout>
+
+    <!-- ========================================================= -->
+    <!-- LEAVE ROOM -->
+    <!-- ========================================================= -->
 
     <Button
         android:id="@+id/leaveRoom"
@@ -96,11 +133,19 @@
         android:layout_height="wrap_content"
         android:text="Leave room" />
 
+    <!-- ========================================================= -->
+    <!-- SHARE DRAFT -->
+    <!-- ========================================================= -->
+
     <Button
         android:id="@+id/shareDraft"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Share selected draft" />
+
+    <!-- ========================================================= -->
+    <!-- START SPIN -->
+    <!-- ========================================================= -->
 
     <Button
         android:id="@+id/startSpin"
@@ -108,23 +153,26 @@
         android:layout_height="wrap_content"
         android:text="Start spin (owner)" />
 
+    <!-- ========================================================= -->
+    <!-- RECONNECT -->
+    <!-- ========================================================= -->
+
     <Button
         android:id="@+id/reconnect"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Reconnect / room_state" />
 
-    <ScrollView
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1">
+    <!-- ========================================================= -->
+    <!-- TECHNICAL LOG -->
+    <!-- HIDDEN FROM USER -->
+    <!-- ========================================================= -->
 
-        <TextView
-            android:id="@+id/logView"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:fontFamily="monospace"
-            android:textSize="12sp"
-            android:text="Ready." />
-    </ScrollView>
+    <TextView
+        android:id="@+id/logView"
+        android:layout_width="1dp"
+        android:layout_height="1dp"
+        android:visibility="gone"
+        android:text="Ready." />
+
 </LinearLayout>
